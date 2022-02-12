@@ -1,2 +1,9 @@
 *.csv
 *.xml
+data/*.csv
+data/*.xml
+results/
+slurm_err/
+slurm_out/
+.ipynb_checkpoints/
+*.tntp
