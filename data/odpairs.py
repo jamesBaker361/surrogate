@@ -2,11 +2,12 @@ import sys
 import osmium
 import os
 import numpy as np
+import pandas as pd
 from scipy.spatial import KDTree
 import xml.etree.ElementTree as ET
 import argparse
 
-parser = argparse.ArgumentParser(description='tntp -> csv')
+parser = argparse.ArgumentParser(description='od-pairs')
 
 pyhissim_str='pyhissim'
 pbf_str='pbf'
@@ -18,7 +19,7 @@ parser.add_argument('--'+pbf_str,'-b',help='pbf input',nargs='?', default='texas
 parser.add_argument('--'+graph_str,'-g',help='binary graph input file',nargs='?', default='austin.gr.bin')
 parser.add_argument('--'+event_str,'-e',help='events file',nargs='?',default='0.events.csv')
 
-coordinate_precision = 100000.0
+coordinate_precision = 1000000.0
 
 #event_tree = ET.parse('/home/rajnikant/Desktop/beam/output/sf-light/sf-light-1k-xml__2022-02-10_17-28-41_jgx/ITERS/it.0/0.events.xml')
 
@@ -51,7 +52,7 @@ if __name__=='__main__':
     pbf=arg_vars[pbf_str]
     pyhssim_tree=ET.parse(arg_vars[pyhissim_str])
     graph_file=arg_vars[graph_str]
-    event_tree = ET.parse(arg_vars[event_str])
+    #event_tree = ET.parse(arg_vars[event_str])
     
     osm_handler = OSMHandler()
     osm_handler.apply_file(pbf)
@@ -110,28 +111,36 @@ if __name__=='__main__':
                             link_id_with_orig_id[id] = int(attribute.text)
 
 
-    event_root = event_tree.getroot()
+    #event_root = event_tree.getroot()
     od_pairs_file = open(r"beam-od-pair.csv","w+")
-    od_pairs_file.write("origin,destination\n")
+    od_pairs_file.write("origin,destination,volume\n")
     #print(coord_to_vertex)
-    for child in event_root:
-        attribute = child.attrib
-        if attribute.get('type') == 'PathTraversal' and len(attribute.get('links')) > 0:
-            links = attribute.get('links').split(",")
-            first_link_id = links[0]
-            last_link_id = links[-1]
-            first_way_id = link_id_with_orig_id.get(first_link_id)
-            last_way_id = link_id_with_orig_id.get(last_link_id)
-            origin_list = osm_handler.get_coordinates_for_way_id(first_way_id)
-            destination_list = osm_handler.get_coordinates_for_way_id(last_way_id)
-            origin = origin_list[0] if origin_list != None else None
-            destination = destination_list[-1] if destination_list != None else None
-            if destination != None and origin != None and origin !=  destination:
-                origin_point = (origin.lat, origin.lon)
-                destination_point = (destination.lat, destination.lon)
+    df=pd.read_csv('0.events.csv')
+    df_pt=df[df['type']=='PathTraversal']
+    #linksPluralSet=set([s for s in df_pt['links']])
+    for s in df_pt['links']:
+        try:
+            links=s.split(',')
+        except AttributeError:
+            continue
+        first_link_id = links[0]
+        last_link_id = links[-1]
+        first_way_id = link_id_with_orig_id.get(first_link_id)
+        last_way_id = link_id_with_orig_id.get(last_link_id)
+        origin_list = osm_handler.get_coordinates_for_way_id(first_way_id)
+        destination_list = osm_handler.get_coordinates_for_way_id(last_way_id)
+        origin = origin_list[0] if origin_list != None else None
+        destination = destination_list[-1] if destination_list != None else None
+        if destination != None and origin != None and origin !=  destination:
+            origin_point = (origin.lat, origin.lon)
+            destination_point = (destination.lat, destination.lon)
+            try:
                 oid = coord_to_vertex.get(origin_point, kdtree.query_ball_point((origin.lat, origin.lon), r=0.01)[0])
                 did = coord_to_vertex.get(destination_point, kdtree.query_ball_point((destination.lat, destination.lon), r=0.01)[0])
-                od_pairs_file.write(str(oid)+","+str(did)+"\n")
+            except IndexError:
+                print(origin_point, destination_point)
+                continue
+            od_pairs_file.write(str(oid)+","+str(did)+",1\n")
 
 
     od_pairs_file.close()
