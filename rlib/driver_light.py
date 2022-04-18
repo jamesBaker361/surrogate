@@ -30,7 +30,9 @@ env_config={
 			"perturbed" :perturbed,
 			"fake_flow" : fake_flow["flow"],
 			"real_flow": real_flow["flow"],
-			"horizon" : 25
+			"horizon" : 25,
+            "fw_iterations":250,
+            "reg_beta":0.1
 		}
 
 parser = argparse.ArgumentParser()

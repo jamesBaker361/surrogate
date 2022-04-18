@@ -8,8 +8,6 @@ scratch=os.environ["SCRATCH"]
 
 def link_id_to_nodes(network_src):
     """ creates dict to map link IDs to (tail,head)
-
-
     Returns
     -------
     d dict
@@ -83,15 +81,14 @@ def get_node_paths(path_src,demand_df):
                 edge_list.append(end)
             node_paths.append(edge_list)
     return node_paths
-                
-            
 
-            
+
+
+
 
 def compress(big_demand,path_src,little_edges,excess=500):
     """compresses all the paths in path_src to only contain paths [node_i, node_j,.....node_n] with 
         start nodes that can reach the end nodes
-
     Args:
         big_demand str: file path location of demand file:
             origin,destination,volume
@@ -115,7 +112,6 @@ def compress(big_demand,path_src,little_edges,excess=500):
             139092,139200,7,800,15
             139093,139092,5,800,15
         excess (int, optional): how much to add to each demand pair. Defaults to 500.
-
     Returns:
         pd.DataFrame: new od matrix
                   origin  destination  volume
@@ -141,7 +137,7 @@ def compress(big_demand,path_src,little_edges,excess=500):
             destinations.append(path[-1])
             volumes.append(big_demand_df["volume"][y]+excess)
     return pd.DataFrame({"origin":origins,"destination":destinations,"volume":volumes})
-    
+
 if __name__=="__main__":
     big_demand=scratch+"/data/AustinReduced/demand.csv"
     path_src=scratch+"/data/AustinReduced/output8/paths.csv"
@@ -150,4 +146,4 @@ if __name__=="__main__":
     big_demand_df=pd.read_csv(big_demand,comment="#")
     little_demand_df=pd.read_csv(little_demand,comment="#")
     df=compress(big_demand,path_src,little_edges)
-    df.to_csv(scratch+"/data/AustinShrunk/compressedDemand.csv",index=False)
+    df.to_csv(scratch+"/data/AustinShrunk/compressedDemand.csv",index=False) 
