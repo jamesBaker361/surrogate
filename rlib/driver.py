@@ -32,25 +32,38 @@ from ray.rllib.utils.framework import try_import_tf, try_import_torch
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.tune.logger import pretty_print
 
+import tensorflow as tf
+import frankwolfe as fw
+
 sys.path.append('..')
 from qlearn.dataLoad import *
 
-from frankwolfe import flow
-
-tf1, tf, tfv = try_import_tf()
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
 	"--run", type=str, default="PPO", help="The RLlib-registered algorithm to use."
 )
-
 parser.add_argument(
-	"--stop-iters", type=int, default=10, help="Number of iterations to train."
+	"--framework",
+	choices=["tf", "tf2", "tfe", "torch"],
+	default="tf2",
+	help="The DL framework specifier.",
+)
+parser.add_argument(
+	"--as-test",
+	action="store_true",
+	help="Whether this script should be run as a test: --stop-reward must "
+	"be achieved within --stop-timesteps AND --stop-iters.",
+)
+parser.add_argument(
+	"--stop-iters", type=int, default=5, help="Number of iterations to train."
 )
 parser.add_argument(
 	"--stop-timesteps", type=int, default=100, help="Number of timesteps to train."
 )
-
+parser.add_argument(
+	"--stop-reward", type=float, default=-0.1, help="Reward at which we stop training."
+)
 parser.add_argument(
 	"--no-tune",
 	action="store_true",
@@ -62,8 +75,6 @@ parser.add_argument(
 	action="store_true",
 	help="Init Ray in local mode for easier debugging.",
 )
-
-
 """
 class MyEnv(gym.Env):
 	def __init__(self, env_config):
@@ -92,7 +103,8 @@ class TrafficEnvironment(gym.Env):
 
 		space_size=len(self.state)
 
-		self.observation_space = Box(np.array([0.0 for _ in range(space_size)]),np.array([1.0 for _ in range(space_size)]))
+		self.action_space = Box(np.array([0.0 for _ in range(space_size)]),np.array([1.0 for _ in range(space_size)]))
+		self.observation_space =Box(np.array([0.0 for _ in range(space_size)]),np.array([sys.maxsize for _ in range(space_size)]))
 		
 
 	def reset(self):
@@ -100,13 +112,19 @@ class TrafficEnvironment(gym.Env):
 		self.perturbed=self.initial_perturbed.copy()
 		self.episode_ended = False
 		self.step_count=0
-		return 
+		return [self.state]
 
 	def step(self, action):
 		self.step_count+=1
-		done = self.step_count >= self.horizon
+		self.episode_ended = self.step_count >= self.horizon
 
-		self.state=flow(self.demand,self.perturbed,25)["flow"]
+		'''pairs=fw.importODPairsFrom(self.demand)
+		graph=fw.Graph(self.perturbed,0,100)
+		assign=fw.FrankWolfeAssignment(graph,pairs,True,False)
+
+		self.state=assign.runPython(100)'''
+		atp=fw.AssignTrafficPython()
+		self.state=atp.flow(self.demand,self.perturbed,100)
 		diff=[]
 		for a,b in zip(self.real_flow["flow"],self._state):
 			diff.append(np.abs(a-b))
@@ -114,10 +132,20 @@ class TrafficEnvironment(gym.Env):
 		if self.episode_ended is False:
 			for x in range(len(action)):
 				self.perturbed["capacity"][x]=int(750*action[x])+250
-		return self.state, reward,done, {}
-		# Produce a random reward when we reach the goal.
-		return [self.cur_pos], random.random() * 2 if done else -0.1, done, {}
+		return [self.state], reward, self.episode_ended, {}
 
+class EmptyEnvironment(gym.Env):
+	def __init__(self,config: EnvContext):
+		self.action_space = Discrete(2)
+		self.observation_space = Box(0.0, 20, shape=(1,), dtype=np.float32)
+		self.state=0
+
+	def reset(self):
+		self.state =0
+		return [self.state]	
+
+	def step(self,action):
+		return [self.state], 10, True,{}
 
 class CustomModel(TFModelV2):
 	"""Example of a keras custom model that just delegates to an fc-net."""
@@ -137,6 +165,7 @@ class CustomModel(TFModelV2):
 		return self.model.value_function()
 
 if __name__ == "__main__":
+    '''
 	args = parser.parse_args()
 	print(f"Running with following CLI options: {args}")
 
@@ -154,7 +183,8 @@ if __name__ == "__main__":
 			"demand": demand,
 			"perturbed" :perturbed,
 			"fake_flow" : fake_flow["flow"],
-			"real_flow": real_flow["flow"]
+			"real_flow": real_flow["flow"],
+			"horizon" : 100
 		},
 		# Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
 		"num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
@@ -201,4 +231,4 @@ if __name__ == "__main__":
 			print("Checking if learning goals were achieved")
 			check_learning_achieved(results, args.stop_reward)
 
-	ray.shutdown()
+	ray.shutdown()'''

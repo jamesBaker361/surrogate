@@ -9,9 +9,9 @@ from random import randint
 scratch=os.environ["SCRATCH"]
 from dataLoad import *
 
-runs=100
+runs=250
 
-samples=2000
+samples=5000
 
 x=[]
 y=[]
@@ -21,4 +21,4 @@ for _ in range(samples):
 	x.append(edges["capacity"])
 	y.append(flow(demand,edges,runs)["flow"])
 
-np.savez("samples.npz",x=x,y=y)
+np.savez("samples250.npz",x=x,y=y)

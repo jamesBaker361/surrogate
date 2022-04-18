@@ -10,17 +10,23 @@ def path_to_dict(src):
     df=pd.read_csv(src,comment="#")
     ret={}
     for c in df.columns:
-        ret[c]=[int(_) for _ in df[c]]
+        try:
+            ret[c]=[int(_) for _ in df[c]]
+        except ValueError:
+            ret[c]=[str(_) for _ in df[c]]
     return ret
 
-demand=path_to_dict(scratch+'/data/AustinShrunk/compressedDemand.csv')
-edges=path_to_dict(scratch+'/data/AustinShrunk/edges.csv')
-perturbed=path_to_dict(scratch+'/data/AustinShrunk/perturbedEdges.csv')
-labels=path_to_dict(scratch+'/data/AustinShrunk/labels.csv')
-real_flow=path_to_dict(scratch+'/data/AustinShrunk/realFlow.csv')
-fake_flow=path_to_dict(scratch+'/data/AustinShrunk/fakeFlow.csv')
+src_dir='AustinVeryShrunk'
+
+network=path_to_dict(scratch+'/data/Austin/network.csv')
+demand=path_to_dict(scratch+'/data/{}/compressedDemand.csv'.format(src_dir))
+edges=path_to_dict(scratch+'/data/{}/edges.csv'.format(src_dir))
+perturbed=path_to_dict(scratch+'/data/{}/perturbedEdges.csv'.format(src_dir))
+labels=path_to_dict(scratch+'/data/{}/labels.csv'.format(src_dir))
+real_flow=path_to_dict(scratch+'/data/{}/realFlow.csv'.format(src_dir))
+fake_flow=path_to_dict(scratch+'/data/{}/fakeFlow.csv'.format(src_dir))
 
 if __name__=="__main__":
-    d=path_to_dict(scratch+'/data/AustinShrunk/demand.csv')
+    d=path_to_dict(scratch+'/data/{}/demand.csv')
     for k,v in d.items():
         print(k, len(v))

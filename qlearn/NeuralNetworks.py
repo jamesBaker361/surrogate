@@ -24,14 +24,15 @@ def get_datasets(batch_size=32):
 	return train_dataset,test_dataset
 
 def add_dense_layer(nodes,model):
-    
+	model.add([
+		tf.keras.layers.Dense(nodes),
+		tf.keras.layers.BatchNormalization(),
+		tf.keras.layers.LeakyReLU()
+		])
 
 def get_model(input_shape):
-	tf.keras.Sequential([
-		tf.keras.layers.Dense(512, input_shape=input_shape),
-		tf.keras.layers.Dense(256),
-		tf.keras.layers.Dense(128),
-		tf.keras.layers.Dense(64),
-		tf.keras.layers.Dense(128),
-		tf.keras.layers.Dense(256),
+	model=tf.keras.Sequential([
+		tf.keras.layers.Dense(512, input_shape=input_shape)
 	])
+	for n in [256,128,128,256,512]:
+		model.add_dense_layer(n)

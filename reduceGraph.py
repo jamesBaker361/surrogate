@@ -61,4 +61,4 @@ if __name__=='__main__':
     demand_src='demand.csv'
     reduced_list=['reducedDemand.csv','extraReducedDemand.csv']
     reduced_edges_list=['reducedEdges.csv','extraReducedEdges.csv']
-    reduce(edge_src,demand_src,reduced_list,reduced_edges_list)
+    reduce_two_biggest(edge_src,demand_src,reduced_list,reduced_edges_list)

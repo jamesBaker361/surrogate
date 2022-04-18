@@ -113,5 +113,11 @@ def shrink_graph(edge_src,demand_src,edge_dest='edges.csv',demand_dest='demand.c
                 
 
 if __name__=='__main__':
+    '''shrink_graph(scratch+'/data/AustinReduced/reducedEdges.csv',
+                 scratch+'/data/AustinReduced/reducedDemand.csv', 
+                 scratch+'/data/AustinShrunk/edges.csv',
+                 scratch+'/data/AustinShrunk/demand.csv',fraction=0.99)'''
     shrink_graph(scratch+'/data/AustinReduced/reducedEdges.csv',
-                 scratch+'/data/AustinReduced/reducedDemand.csv', scratch+'/data/AustinShrunk/edges.csv',scratch+'/data/AustinShrunk/demand.csv',fraction=0.99)
+                 scratch+'/data/AustinReduced/reducedDemand.csv', 
+                 scratch+'/data/AustinExtraShrunk/edges.csv',
+                 scratch+'/data/AustinExtraShrunk/demand.csv',fraction=0.995)

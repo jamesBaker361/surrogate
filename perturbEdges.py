@@ -26,16 +26,24 @@ def perturb(edge_file,label_file,perturbed_file,frac=.4):
     with open(edge_file,'r') as src, open(label_file,'w') as label_dest, open(perturbed_file,'w') as dest:
         label_dest.write('tail,head,label')
         dest.write(next(src).strip())
+        count=0
+        ones=0
+        zeros=0
         for r in src:
+            count+=1
             row=r.strip().split(',')
             [edge_tail,edge_head,length,capacity,speed]=row
             label=1
             if random.random()<=frac:
+                zeros+=1
                 label=0
                 capacity=str(100)
+            else:
+                ones+=1
             label_dest.write('\n{},{},{}'.format(edge_tail,edge_head,label))
             dest.write('\n'+','.join([edge_tail,edge_head,length,capacity,speed]))
-            
+        print("perturbed {}/{} edges".format(zeros,count))
+
 def perturbDiscrete(edge_file,label_file,perturbed_file,frac=.1,unit=100):
     """
     perturbs (100*frac)% of the edges by +/- (1,2)*unit
@@ -60,16 +68,23 @@ def perturbDiscrete(edge_file,label_file,perturbed_file,frac=.1,unit=100):
     with open(edge_file,'r') as src, open(label_file,'w') as label_dest, open(perturbed_file,'w') as dest:
         dest.write(next(src).strip())
         label_dest.write('tail,head,label')
+        count=0
+        ones=0
+        zeros=0
         for r in src:
+            count+=1
             row=r.strip().split(',')
             [edge_tail,edge_head,length,capacity,speed]=row
             label=1
             if random.random()<=frac:
                 label=0 #perturbed!
+                zeros+=1
                 capacity=str(int(capacity)+random.choice([-2*unit,1*unit,unit,2*unit]))
+            else:
+                ones+=1
             label_dest.write('\n{},{},{}'.format(edge_tail,edge_head,label))
             dest.write('\n'+','.join([edge_tail,edge_head,length,capacity,speed]))
-                
+        print("perturbed {}/{} edges".format(zeros,count))    
         
     
 if __name__ =='__main__':
