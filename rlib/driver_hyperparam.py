@@ -2,6 +2,7 @@ import sys
 sys.path.append('..')
 from qlearn.dataLoad import *
 
+
 import gym
 import envs
 import argparse
@@ -24,28 +25,55 @@ from customModels import *
 
 from ray.tune.logger import pretty_print
 
+from datetime import datetime
+
+now = datetime.now()
+
+time_str=now.strftime("%m/%d-%H:%M:%S")
+
 tf.config.run_functions_eagerly(False)
 
-env_config={
-			"demand": demand,
-			"perturbed" :perturbed,
-			"fake_flow" : fake_flow["flow"],
-			"real_flow": real_flow["flow"],
-			"horizon" : 25,
-            "fw_iterations":250,
-            "reg_beta":0.1
-		}
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
 	"--run", type=str, default="ppo", help="The RLlib-registered algorithm to use."
 )
 
+parser.add_argument(
+    "--horizon", type=int, default=25, help="steps per episode"
+)
+
+parser.add_argument(
+    "--beta",type=float, default=0.1, help="beta coefficient on regularization term"   
+)
+
+parser.add_argument(
+    "--steps", type=int, default=1000,help="how many timesteps before stopping"
+)
+
 args = parser.parse_args()
 print(f"Running with following CLI options: {args}")
 print(args.run)
 
+env_config={
+			"demand": demand,
+			"perturbed" :perturbed,
+			"fake_flow" : fake_flow["flow"],
+			"real_flow": real_flow["flow"],
+			"horizon" : args.horizon,
+            "fw_iterations":250,
+            "reg_beta":args.beta
+		}
+
 trainer_type=args.run
+timesteps_total=args.steps
+
+def get_trial_function():
+    def _trial_function(trial):
+        return "hyperparam_{}_horizon={}_ts_total={}_beta={}_{}".format(args.run,args.horizon,args.steps,args.beta,time_str)
+    return _trial_function
+
+trial_name_creator=get_trial_function()
 
 if trainer_type=='ppo':
 
@@ -104,6 +132,8 @@ print(dir(trainer))
 status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
 
 agent_config["env"]=TrafficEnv
-stop={"timesteps_total":10000}
+stop={"timesteps_total":timesteps_total}
 
-results = tune.run(trainer, config=agent_config, stop=stop, verbose=1)
+results = tune.run(trainer, 
+    config=agent_config, stop=stop, verbose=1,
+    trial_name_creator=trial_name_creator)
