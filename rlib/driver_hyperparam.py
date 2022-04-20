@@ -40,7 +40,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--horizon", type=int, default=25, help="steps per episode"
+    "--horizon", type=int, default=100, help="steps per episode"
 )
 
 parser.add_argument(

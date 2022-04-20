@@ -1,6 +1,6 @@
 import sys
 sys.path.append('..')
-from qlearn.dataLoad import *
+from dataLoad import *
 
 import gym
 import envs
