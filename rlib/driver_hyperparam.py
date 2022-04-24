@@ -1,6 +1,5 @@
-import sys
-sys.path.append('..')
-from qlearn.dataLoad import *
+
+from dataLoad import *
 
 
 import gym
@@ -51,6 +50,10 @@ parser.add_argument(
     "--steps", type=int, default=1000,help="how many timesteps before stopping"
 )
 
+parser.add_argument(
+    "--tune", type=bool, default=False,help="whether to use automated tune for hyperparam search"
+)
+
 args = parser.parse_args()
 print(f"Running with following CLI options: {args}")
 print(args.run)
@@ -95,28 +98,34 @@ elif trainer_type == "sac":
         'train_batch_size':500,
         'num_workers':4,
         "policy_model": {
-            "fcnet_hiddens":tune.grid_search([ [128 for _ in range(x)] for x in range(1,6) ])
+            "fcnet_hiddens":tune.grid_search([ [64 for _ in range(x)] for x in range(1,6) ]) if args.tune else [64,64,64,64]
         },
         "Q_model":{
-            "fcnet_hiddens": tune.grid_search([ [128 for _ in range(x)] for x in range(1,6) ])
+            "fcnet_hiddens": tune.grid_search([ [64 for _ in range(x)] for x in range(1,6) ]) if args.tune else [64,64,64,64]
         },
         "env_config":env_config,
         "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
         "framework":"tf2"
     }
-    trainer=sac.SACTrainer
+    if args.tune:
+        trainer=sac.SACTrainer
+    else:
+        trainer=sac.SACTrainer(env=TrafficEnv,config=agent_config,logger_creator=trial_name_creator)
 
 elif trainer_type=='td3':
     agent_config={
         "num_workers":4,
         'train_batch_size':500,
         "env_config":env_config,
-        "actor_hiddens": tune.grid_search([ [128 for _ in range(x)] for x in range(1,6) ]),
-        "critic_hiddens": tune.grid_search([ [128 for _ in range(x)] for x in range(1,6) ]),
+        "actor_hiddens": tune.grid_search([ [64 for _ in range(x)] for x in range(1,6) ]) if args.tune else [64,64,64,64],
+        "critic_hiddens": tune.grid_search([ [64 for _ in range(x)] for x in range(1,6) ]) if args.tune else [64,64,64,64],
         "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
         "framework":"tf2"
     }
-    trainer=ddpg.TD3Trainer
+    if args.tune:
+        trainer=ddpg.TD3Trainer
+    else:
+        trainer=sac.TD3Trainer(env=TrafficEnv,config=agent_config,logger_creator=trial_name_creator)
 
 elif trainer_type=='impala':
     agent_config={"num_workers":4,
@@ -125,15 +134,22 @@ elif trainer_type=='impala':
         "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
         "grad_clip": 1000.0, 
         "framework":"tf2"}
-    trainer=agents.impala.ImpalaTrainer
+    if args.tune:
+        trainer=agents.impala.ImpalaTrainer
+    else:
+        trainer=agents.impala.ImpalaTrainer(env=TrafficEnv,config=agent_config,logger_creator=trial_name_creator)
 
 print(dir(trainer))
 
 status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
 
-agent_config["env"]=TrafficEnv
-stop={"timesteps_total":timesteps_total}
+if args.tune:
+    agent_config["env"]=TrafficEnv
+    stop={"timesteps_total":timesteps_total}
 
-results = tune.run(trainer, 
-    config=agent_config, stop=stop, verbose=1,
-    trial_name_creator=trial_name_creator)
+    results = tune.run(trainer, 
+        config=agent_config, stop=stop, verbose=1,
+        trial_name_creator=trial_name_creator)
+else:
+    for i in range(timesteps_total):
+        result = trainer.train()
